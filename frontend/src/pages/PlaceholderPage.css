@@ -1,0 +1,15 @@
+/* PlaceholderPage — 待开发页面占位 */
+.ph-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 10px;
+  background: #f0f7fc;
+  color: #a0b4c5;
+}
+
+.ph-icon  { font-size: 40px; margin-bottom: 4px; }
+.ph-title { font-size: 18px; font-weight: 700; color: #5a7d99; }
+.ph-sub   { font-size: 13px; color: #a0b4c5; text-align: center; max-width: 260px; line-height: 1.6; }

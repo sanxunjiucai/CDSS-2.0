@@ -1,0 +1,380 @@
+/* ══════════════════════════════
+   SearchModal — 搜索抽屉
+   ══════════════════════════════ */
+
+.sm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 30, 50, 0.35);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 200;
+  padding-top: 66px;               /* 顶栏高度下方 */
+  backdrop-filter: blur(2px);
+  animation: sm-fade-in 0.18s ease;
+}
+
+@keyframes sm-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.sm-panel {
+  width: min(860px, 94vw);
+  max-height: calc(100vh - 100px);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: sm-slide-down 0.2s ease;
+}
+
+@keyframes sm-slide-down {
+  from { transform: translateY(-12px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+/* ── 头部 ── */
+.sm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e8f0f6;
+  background: #f7fbfe;
+  flex-shrink: 0;
+}
+
+.sm-breadcrumb {
+  font-size: 13px;
+  color: #4a6d8c;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.sm-cat-label {
+  color: #2980b9;
+  font-weight: 600;
+}
+
+.sm-arrow {
+  color: #b0c4d4;
+}
+
+.sm-kw {
+  color: #1a3a50;
+  font-weight: 500;
+}
+
+.sm-count {
+  color: #8a9fb4;
+}
+
+.sm-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sm-btn-ghost {
+  background: none;
+  border: 1px solid #d4e5f0;
+  border-radius: 4px;
+  color: #5a7d99;
+  font-size: 12px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.sm-btn-ghost:hover {
+  background: #edf5fb;
+}
+
+.sm-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #8a9fb4;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s;
+}
+
+.sm-close:hover {
+  background: #e8f0f6;
+  color: #2c3e50;
+}
+
+/* ── 主体（列表 + 详情） ── */
+.sm-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── 结果列表 ── */
+.sm-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px;
+  border-right: 1px solid transparent;
+  transition: flex 0.2s;
+}
+
+.sm-list.sm-list-narrow {
+  flex: 0 0 320px;
+  border-right-color: #e8f0f6;
+}
+
+/* 闲置区 */
+.sm-idle {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 8px 2px;
+}
+
+.sm-chip-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sm-chip-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8a9fb4;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sm-btn-ghost-sm {
+  background: none;
+  border: none;
+  color: #a0b4c5;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.12s;
+}
+
+.sm-btn-ghost-sm:hover { color: #e74c3c; }
+
+.sm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sm-chip {
+  padding: 3px 11px;
+  border-radius: 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.sm-chip-history {
+  background: #f0f6fb;
+  border: 1px solid #d4e5f0;
+  color: #3d6a8a;
+}
+
+.sm-chip-history:hover {
+  background: #daedf9;
+  border-color: #3498db;
+}
+
+.sm-chip-hot {
+  background: #fef9f0;
+  border: 1px solid #f5d89a;
+  color: #a06010;
+}
+
+.sm-chip-hot:hover {
+  background: #fdefd0;
+  border-color: #e0a020;
+}
+
+/* 状态提示 */
+.sm-status-tip {
+  text-align: center;
+  color: #8a9fb4;
+  font-size: 13px;
+  padding: 48px 20px;
+}
+
+/* 结果卡片 */
+.sm-card {
+  border: 1px solid #e8f0f6;
+  border-radius: 8px;
+  padding: 11px 13px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.sm-card:hover {
+  border-color: #a8d4ee;
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+}
+
+.sm-card.sm-card-active {
+  border-color: #3498db;
+  background: #f0f9ff;
+  box-shadow: 0 2px 10px rgba(52, 152, 219, 0.14);
+}
+
+.sm-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.sm-badge {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+
+.sm-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a3a50;
+  line-height: 1.4;
+}
+
+.sm-card-summary {
+  font-size: 12px;
+  color: #667f94;
+  line-height: 1.55;
+  margin: 0 0 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sm-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sm-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sm-tag {
+  padding: 1px 7px;
+  background: #edf6fd;
+  border: 1px solid #cde5f5;
+  border-radius: 9px;
+  font-size: 10px;
+  color: #3d6a8a;
+}
+
+.sm-meta {
+  font-size: 10px;
+  color: #a0b4c5;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── 详情面板 ── */
+.sm-detail {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sm-detail-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.sm-detail-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a3a50;
+  line-height: 1.4;
+}
+
+.sm-close-sm {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #a0b4c5;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background 0.12s;
+}
+
+.sm-close-sm:hover { background: #e8f0f6; color: #555; }
+
+.sm-detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.sm-detail-body {
+  font-size: 13px;
+  color: #3a4f60;
+  line-height: 1.7;
+  flex: 1;
+}
+
+.sm-h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a5276;
+  margin: 12px 0 4px;
+}
+
+.sm-p { margin: 2px 0; }
+
+.sm-li {
+  margin: 2px 0 2px 16px;
+  list-style: disc;
+  display: list-item;
+}
+
+.sm-br { height: 4px; }
+
+.sm-detail-foot {
+  font-size: 11px;
+  color: #a0b4c5;
+  border-top: 1px solid #e8f0f6;
+  padding-top: 8px;
+  flex-shrink: 0;
+}

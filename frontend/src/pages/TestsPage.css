@@ -1,0 +1,528 @@
+/* ══════════════════════════════
+   TestsPage — 检验检查推荐
+   ══════════════════════════════ */
+
+.te-page {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: #f0f7fc;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── 页头 ── */
+.te-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  background: #fff;
+  border-bottom: 1px solid #dce9f2;
+  flex-shrink: 0;
+}
+
+.te-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.te-page-icon {
+  font-size: 18px;
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, #3498db, #2471a3);
+  color: #fff;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.te-page-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a3a50;
+}
+
+.te-page-sub {
+  font-size: 11px;
+  color: #8a9fb4;
+  margin-top: 2px;
+}
+
+/* ── 批量操作 ── */
+.te-bulk-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.te-btn-select-required {
+  padding: 5px 14px;
+  background: #eafaf1;
+  border: 1px solid #a9dfbf;
+  border-radius: 6px;
+  color: #1e8449;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.te-btn-select-required:hover { background: #d5f5e3; }
+
+.te-btn-clear {
+  padding: 5px 14px;
+  background: #fff;
+  border: 1px solid #d4e5f0;
+  border-radius: 6px;
+  color: #5a7d99;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.te-btn-clear:hover { background: #f0f7fc; }
+
+/* ── 诊断上下文条 ── */
+.te-context-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  background: #eaf4fd;
+  border-bottom: 1px solid #aed6f1;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.te-ctx-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #5a7d99;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.te-ctx-dx {
+  padding: 2px 10px;
+  background: #d6eaf8;
+  border: 1px solid #aed6f1;
+  border-radius: 10px;
+  font-size: 11px;
+  color: #1a6fa8;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.te-ctx-hint {
+  font-size: 11px;
+  color: #8a9fb4;
+  flex-shrink: 0;
+}
+
+/* ── 主体 ── */
+.te-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── section 通用 ── */
+.te-section {
+  background: #fff;
+  border: 1px solid #dce9f2;
+  border-radius: 9px;
+  padding: 12px 14px;
+}
+
+.te-sec-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a5276;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e8f0f6;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.te-cat-icon {
+  font-size: 14px;
+}
+
+.te-count-badge {
+  padding: 1px 7px;
+  background: #eaf4fd;
+  color: #2980b9;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px solid #aed6f1;
+}
+
+.te-abnormal-badge {
+  padding: 1px 7px;
+  background: #fdedec;
+  color: #c0392b;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px solid #f1948a;
+}
+
+/* ── 检查项列表 ── */
+.te-test-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.te-test-row {
+  border: 1px solid #e8f0f6;
+  border-radius: 7px;
+  background: #fafcfe;
+  transition: border-color 0.12s, background 0.12s;
+  overflow: hidden;
+}
+
+.te-test-row:hover { border-color: #a8d4ee; }
+.te-test-row.selected { border-color: #3498db; background: #f4faff; }
+.te-test-row.expanded { border-color: #3498db; }
+
+/* 主行 */
+.te-test-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+}
+
+.te-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #3498db;
+  flex-shrink: 0;
+}
+
+.te-priority-badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid;
+}
+
+.te-test-info {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.te-test-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a3a50;
+  margin-bottom: 2px;
+}
+
+.te-test-sample-hint {
+  display: block;
+  font-size: 11px;
+  color: #a0b4c5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 结果状态下拉 */
+.te-status-select {
+  padding: 3px 8px;
+  border: 1px solid #dce9f2;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  max-width: 88px;
+  outline: none;
+}
+
+.te-expand-chevron {
+  font-size: 18px;
+  color: #a0b4c5;
+  transition: transform 0.18s;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.te-expand-chevron.open {
+  transform: rotate(90deg);
+  color: #3498db;
+}
+
+/* 展开详情 */
+.te-test-detail {
+  padding: 10px 14px 12px;
+  border-top: 1px solid #e8f0f6;
+  background: #fff;
+}
+
+.te-detail-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+.te-detail-label {
+  font-weight: 600;
+  color: #5a7d99;
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: 56px;
+}
+
+.te-detail-val {
+  color: #3a4f60;
+  line-height: 1.6;
+}
+
+.te-detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.te-tag {
+  padding: 2px 8px;
+  background: #f0f7fc;
+  border: 1px solid #d4e5f0;
+  border-radius: 9px;
+  font-size: 10px;
+  color: #5a7d99;
+  font-weight: 500;
+}
+
+.te-abnormal-hint {
+  margin-top: 8px;
+  padding: 7px 10px;
+  background: #fdedec;
+  border: 1px solid #f1948a;
+  border-radius: 5px;
+  font-size: 12px;
+  color: #c0392b;
+  font-weight: 500;
+}
+
+/* ── 当前推荐清单 ── */
+.te-selected-section { }
+
+.te-empty-hint {
+  font-size: 12px;
+  color: #a0b4c5;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.te-selected-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.te-selected-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: #f7fbfe;
+  border-radius: 6px;
+  border: 1px solid #e8f0f6;
+  font-size: 12px;
+}
+
+.te-sel-priority {
+  font-weight: 700;
+  flex-shrink: 0;
+  width: 28px;
+  font-size: 11px;
+}
+
+.te-sel-name {
+  flex: 1;
+  font-weight: 600;
+  color: #1a3a50;
+  min-width: 0;
+}
+
+.te-sel-cat {
+  font-size: 10px;
+  color: #a0b4c5;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.te-sel-status {
+  padding: 1px 7px;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.te-sel-abnormal-dot {
+  color: #c0392b;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* ── 摘要区 ── */
+.te-summary-section { }
+
+.te-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0;
+}
+
+.te-btn-generate {
+  padding: 5px 14px;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.14s;
+}
+
+.te-btn-generate:hover { opacity: 0.88; }
+
+.te-btn-toggle {
+  background: none;
+  border: 1px solid #d4e5f0;
+  border-radius: 5px;
+  color: #5a7d99;
+  font-size: 12px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.te-btn-toggle:hover { background: #edf5fb; }
+
+.te-summary-text {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: #f8fbfe;
+  border: 1px solid #dce9f2;
+  border-radius: 6px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  line-height: 1.75;
+  color: #2c3e50;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.te-summary-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  justify-content: flex-end;
+}
+
+.te-btn-copy {
+  padding: 6px 16px;
+  background: #f0f7fc;
+  border: 1px solid #aed6f1;
+  border-radius: 5px;
+  color: #1a6fa8;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+  min-width: 80px;
+}
+
+.te-btn-copy:hover { background: #daedf9; }
+
+.te-btn-writeback {
+  padding: 6px 18px;
+  background: #3498db;
+  border: none;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+
+.te-btn-writeback:hover { background: #2980b9; }
+
+/* ── 异常结果区 ── */
+.te-abnormal-section {
+  border-color: #f1948a;
+}
+
+.te-abnormal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.te-abnormal-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: #fff9f9;
+  border: 1px solid #f1948a;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.te-abn-name {
+  font-weight: 700;
+  color: #c0392b;
+  flex-shrink: 0;
+}
+
+.te-abn-hint {
+  flex: 1;
+  color: #5a7080;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.te-abn-link {
+  font-size: 11px;
+  color: #2980b9;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.te-abn-link:hover { text-decoration: underline; }

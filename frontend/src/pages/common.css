@@ -1,0 +1,116 @@
+.page {
+  padding: 8px;
+  height: 100%;
+  overflow-y: auto;
+  background: #f0f7fc;
+}
+
+.section {
+  background: white;
+  border: 1px solid #dce9f2;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(100, 180, 220, 0.06);
+}
+
+.section:hover {
+  box-shadow: 0 2px 6px rgba(100, 180, 220, 0.12);
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #1a5276;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e8f0f6;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tag-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  padding: 4px 10px;
+  border: 1px solid #d4e5f0;
+  border-radius: 14px;
+  font-size: 12px;
+  cursor: pointer;
+  background: white;
+  transition: all 0.15s;
+  font-weight: 500;
+  color: #4a6d8c;
+}
+
+.tag:hover {
+  border-color: #3498db;
+  background: #e8f4fd;
+  color: #2980b9;
+}
+
+.tag.selected {
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
+  box-shadow: 0 1px 4px rgba(52, 152, 219, 0.25);
+}
+
+textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d4e5f0;
+  border-radius: 6px;
+  font-size: 13px;
+  resize: vertical;
+  min-height: 64px;
+  transition: all 0.2s;
+  color: #333;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+.parsed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.parsed-item {
+  padding: 6px 10px;
+  background: #f0f7fc;
+  border-radius: 4px;
+  font-size: 12px;
+  border-left: 3px solid #3498db;
+  color: #2c3e50;
+}
+
+.card {
+  padding: 10px 12px;
+  border: 1px solid #dce9f2;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: white;
+}
+
+.card:hover {
+  border-color: #3498db;
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+}
+
+.card.selected {
+  border-color: #3498db;
+  background: #f0f7fc;
+  box-shadow: 0 1px 4px rgba(52, 152, 219, 0.12);
+}

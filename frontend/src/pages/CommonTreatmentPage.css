@@ -1,0 +1,360 @@
+/* ══════════════════════════════
+   CommonTreatmentPage — 通用治疗方案
+   ══════════════════════════════ */
+
+.ct-page {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: #f0f7fc;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── 页头 ── */
+.ct-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  background: #fff;
+  border-bottom: 1px solid #dce9f2;
+  flex-shrink: 0;
+}
+
+.ct-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ct-page-icon {
+  font-size: 20px;
+  font-weight: 700;
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, #27ae60, #1e8449);
+  color: #fff;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ct-page-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a3a50;
+}
+
+.ct-page-sub {
+  font-size: 11px;
+  color: #8a9fb4;
+  margin-top: 2px;
+}
+
+/* ── 方案选择条 ── */
+.ct-plan-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #f7fbfe;
+  border-bottom: 1px solid #dce9f2;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.ct-strip-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8a9fb4;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ct-plan-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border: 1px solid #d4e5f0;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  color: #3a4f60;
+  cursor: pointer;
+  transition: all 0.14s;
+  white-space: nowrap;
+}
+
+.ct-plan-chip:hover {
+  border-color: #3498db;
+  background: #f0f9ff;
+}
+
+.ct-plan-chip.active {
+  border-color: #3498db;
+  background: #eaf4fd;
+  color: #1a6fa8;
+  font-weight: 600;
+  box-shadow: 0 1px 5px rgba(52, 152, 219, 0.15);
+}
+
+.ct-chip-level {
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* ── 内容区 ── */
+.ct-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── section 通用 ── */
+.ct-section {
+  background: #fff;
+  border: 1px solid #dce9f2;
+  border-radius: 9px;
+  padding: 12px 14px;
+}
+
+.ct-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ct-plan-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a3a50;
+}
+
+.ct-level-badge {
+  padding: 2px 8px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ct-indication {
+  font-size: 12px;
+  color: #5a7080;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.ct-sec-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a5276;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e8f0f6;
+}
+
+/* ── 药物表格 ── */
+.ct-med-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ct-med-table thead tr {
+  background: #f8fbfd;
+}
+
+.ct-med-table th {
+  padding: 7px 10px;
+  text-align: left;
+  color: #5a7d99;
+  font-weight: 600;
+  font-size: 11px;
+  border-bottom: 2px solid #dce9f2;
+  white-space: nowrap;
+}
+
+.ct-med-table tbody tr {
+  border-bottom: 1px solid #edf3f8;
+  transition: background 0.1s;
+}
+
+.ct-med-table tbody tr:hover { background: #f7fbfe; }
+.ct-med-table tbody tr:last-child { border-bottom: none; }
+
+.ct-med-table td {
+  padding: 9px 10px;
+  color: #3a4f60;
+  vertical-align: middle;
+}
+
+.ct-group-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.ct-med-name {
+  font-weight: 600;
+  color: #1a3a50;
+}
+
+.ct-freq {
+  display: inline-block;
+  padding: 2px 7px;
+  background: #edf6fd;
+  border-radius: 4px;
+  color: #2980b9;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #aed6f1;
+}
+
+.ct-note {
+  color: #8a9fb4;
+  font-size: 11px;
+}
+
+/* ── 非药物治疗 ── */
+.ct-non-drug {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ct-non-drug-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: #3a4f60;
+  line-height: 1.5;
+}
+
+.ct-bullet {
+  color: #27ae60;
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: -1px;
+}
+
+/* ── 依据 + 注意 ── */
+.ct-section-row {
+  display: flex;
+  gap: 14px;
+}
+
+.ct-basis { flex: 1; }
+.ct-caution { flex: 1; }
+
+.ct-basis-text {
+  font-size: 12px;
+  color: #5a7080;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.ct-caution-text {
+  font-size: 12px;
+  color: #8b5e00;
+  line-height: 1.65;
+  margin: 0;
+  background: #fef9ec;
+  border-left: 3px solid #f39c12;
+  padding: 6px 10px;
+  border-radius: 0 4px 4px 0;
+}
+
+/* ── 治疗摘要 ── */
+.ct-summary-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ct-summary-hint {
+  font-size: 11px;
+  color: #a0b4c5;
+  flex: 1;
+}
+
+.ct-chevron {
+  font-size: 18px;
+  color: #a0b4c5;
+  transition: transform 0.2s;
+  line-height: 1;
+}
+
+.ct-chevron.open {
+  transform: rotate(90deg);
+  color: #3498db;
+}
+
+.ct-summary-text {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: #f8fbfe;
+  border: 1px solid #dce9f2;
+  border-radius: 6px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.75;
+  color: #2c3e50;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.ct-summary-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  justify-content: flex-end;
+}
+
+.ct-btn-copy {
+  padding: 6px 18px;
+  background: #f0f7fc;
+  border: 1px solid #aed6f1;
+  border-radius: 5px;
+  color: #1a6fa8;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.14s;
+  min-width: 88px;
+}
+
+.ct-btn-copy:hover { background: #daedf9; }
+
+.ct-btn-writeback {
+  padding: 6px 20px;
+  background: #3498db;
+  border: none;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+
+.ct-btn-writeback:hover { background: #2980b9; }

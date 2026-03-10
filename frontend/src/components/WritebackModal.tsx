@@ -8,7 +8,7 @@ function buildPreview(
   parsedEntities: ReturnType<typeof useAppStore.getState>['parsedEntities'],
   patientContext: ReturnType<typeof useAppStore.getState>['patientContext']
 ): WritebackPreview {
-  const confirmed = parsedEntities.filter(e => e.confirmed)
+  const confirmed = parsedEntities.filter(e => e.status === 'accepted')
 
   const group = (source: string) =>
     confirmed.filter(e => e.source === source).map(e => e.text).join('、') || '（无）'

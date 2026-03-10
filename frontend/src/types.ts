@@ -14,13 +14,14 @@ export interface PatientContext {
 }
 
 export type EntityCategory = '症状' | '体征' | '疾病' | '检查' | '风险'
+export type EntityStatus = 'accepted' | 'excluded' | 'pending'
 
 export interface ParsedEntity {
   id: string
   text: string
   category: EntityCategory
   source: '主诉' | '现病史' | '既往史' | '补充'
-  confirmed: boolean
+  status: EntityStatus
 }
 
 export interface DiagnosisRecommendation {

@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useAppStore } from '../store'
+import { fetchCommonTreatments } from '../api/endpoints'
 import './common.css'
 import './CommonTreatmentPage.css'
 
@@ -25,63 +26,12 @@ interface TreatmentPlanFull {
   caution?: string      // 注意事项
 }
 
-// ── Mock 方案数据 ─────────────────────────────────────
-
-const MOCK_PLANS: TreatmentPlanFull[] = [
-  {
-    plan_id: 'T001',
-    plan_name: '标准抗心绞痛方案',
-    plan_level: '首选',
-    indication: '适用于不稳定型心绞痛初始稳定化治疗，无抗凝禁忌证患者',
-    medications: [
-      { group: '抗血小板',  name: '阿司匹林肠溶片',   dose: '100 mg',   route: '口服', frequency: 'qd',  note: '餐前服用' },
-      { group: '抗血小板',  name: '氯吡格雷片',       dose: '75 mg',    route: '口服', frequency: 'qd',  note: '双联抗血小板' },
-      { group: '抗心绞痛',  name: '单硝酸异山梨酯片', dose: '20 mg',    route: '口服', frequency: 'bid', note: '防止耐药需留空窗期' },
-      { group: '控制心率',  name: '美托洛尔缓释片',   dose: '47.5 mg',  route: '口服', frequency: 'qd'  },
-      { group: '调脂',      name: '阿托伐他汀钙片',   dose: '20 mg',    route: '口服', frequency: 'qn',  note: '监测肝功能' },
-    ],
-    non_drug: ['适当卧床休息，避免剧烈活动', '持续监测心率、血压、心电图', '低盐低脂饮食，限制饱和脂肪', '戒烟限酒，控制血糖'],
-    basis: '依据 ACC/AHA 2022 不稳定型心绞痛指南推荐（I 类推荐，A 级证据）',
-    caution: '青霉素过敏患者无需特殊调整；血糖控制不佳者注意美托洛尔对低血糖感知的影响',
-  },
-  {
-    plan_id: 'T002',
-    plan_name: '保守药物治疗方案',
-    plan_level: '备选',
-    indication: '适用于症状较轻、血流动力学稳定、近期出血风险偏高的患者',
-    medications: [
-      { group: '抗血小板',  name: '阿司匹林肠溶片',   dose: '100 mg', route: '口服', frequency: 'qd' },
-      { group: '降压',      name: '苯磺酸氨氯地平片', dose: '5 mg',   route: '口服', frequency: 'qd' },
-      { group: '调脂',      name: '瑞舒伐他汀钙片',   dose: '10 mg',  route: '口服', frequency: 'qn' },
-    ],
-    non_drug: ['低强度运动康复', '心率/血压定期监测', '低盐低脂饮食'],
-    basis: '基于患者出血风险评估，参考 GRACE 评分低危层次用药策略',
-    caution: '若症状加重或心电图改变，需升级为标准方案',
-  },
-  {
-    plan_id: 'T003',
-    plan_name: '强化治疗方案',
-    plan_level: '强化',
-    indication: '适用于 GRACE 评分高危、反复发作心绞痛或血流动力学不稳定患者',
-    medications: [
-      { group: '抗血小板',  name: '阿司匹林肠溶片',   dose: '100 mg',  route: '口服',   frequency: 'qd'   },
-      { group: '抗血小板',  name: '替格瑞洛片',       dose: '90 mg',   route: '口服',   frequency: 'bid',  note: '强效 P2Y12 抑制剂' },
-      { group: '抗凝',      name: '低分子肝素钠',      dose: '4000 IU', route: '皮下注射', frequency: 'q12h', note: '用药 3~5 天后评估' },
-      { group: '控制心率',  name: '美托洛尔缓释片',   dose: '47.5 mg', route: '口服',   frequency: 'qd'   },
-      { group: '调脂',      name: '阿托伐他汀钙片',   dose: '40 mg',   route: '口服',   frequency: 'qn',   note: '强化降脂' },
-    ],
-    non_drug: ['ICU/CCU 监护', '绝对卧床', '持续心电监护', '建立静脉通路'],
-    basis: 'ESC 2023 ACS 指南强化抗栓策略（I 类推荐，B 级证据）',
-    caution: '密切监测出血风险；替格瑞洛可能引起呼吸困难，需告知患者',
-  },
-]
-
 // ── 摘要生成 ──────────────────────────────────────────
 
 function buildSummary(
   plan: TreatmentPlanFull,
   diagnosis: string,
-  patientName: string,
+  _patientName: string,
   now: string,
 ): string {
   const medGroups = plan.medications.reduce<Record<string, Medication[]>>((acc, m) => {
@@ -135,6 +85,8 @@ const GROUP_COLORS: Record<string, string> = {
 
 // ── 主组件 ────────────────────────────────────────────
 
+const PLAN_LEVELS: TreatmentPlanFull['plan_level'][] = ['首选', '备选', '强化']
+
 export default function CommonTreatmentPage() {
   const {
     selectedCommonPlan, setSelectedCommonPlan,
@@ -142,14 +94,42 @@ export default function CommonTreatmentPage() {
     showToast, openWritebackModal,
   } = useAppStore()
 
+  const [plans, setPlans]             = useState<TreatmentPlanFull[]>([])
+  const [loading, setLoading]         = useState(false)
   const [summaryOpen, setSummaryOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied]           = useState(false)
 
-  const currentPlan = MOCK_PLANS.find(p => p.plan_id === selectedCommonPlan) ?? MOCK_PLANS[0]
+  useEffect(() => {
+    if (!selectedDiagnosis) return
+    setLoading(true)
+    fetchCommonTreatments(selectedDiagnosis)
+      .then(results => {
+        setPlans(results.map((p, i) => ({
+          plan_id: p.plan_id,
+          plan_name: p.plan_name,
+          plan_level: PLAN_LEVELS[i] ?? '备选',
+          indication: p.description,
+          medications: (p.medications ?? []).map(m => ({
+            group: '',
+            name: m.name,
+            dose: m.dose,
+            route: m.route,
+            frequency: '',
+          })),
+          non_drug: p.non_drug_treatments ?? [],
+          basis: '',
+          caution: (p.contraindications ?? []).length ? (p.contraindications ?? []).join('；') : undefined,
+        })))
+      })
+      .catch(err => console.error('fetchCommonTreatments failed', err))
+      .finally(() => setLoading(false))
+  }, [selectedDiagnosis])
+
+  const currentPlan = plans.find(p => p.plan_id === selectedCommonPlan) ?? plans[0]
 
   const now = new Date().toLocaleString('zh-CN', { hour12: false })
   const summary = useMemo(
-    () => buildSummary(currentPlan, selectedDiagnosis, patientContext?.name ?? '', now),
+    () => currentPlan ? buildSummary(currentPlan, selectedDiagnosis, patientContext?.name ?? '', now) : '',
     [currentPlan, selectedDiagnosis, patientContext?.name]
   )
 
@@ -164,8 +144,11 @@ export default function CommonTreatmentPage() {
   const handleSelect = (planId: string) => {
     setSelectedCommonPlan(planId)
     setSummaryOpen(false)   // 切换方案时收起摘要，防止内容错位
-    showToast(`已切换参考方案：${MOCK_PLANS.find(p => p.plan_id === planId)?.plan_name}`, 'info')
+    showToast(`已切换参考方案：${plans.find(p => p.plan_id === planId)?.plan_name}`, 'info')
   }
+
+  if (loading) return <div className="page ct-page"><p style={{ padding: 24, color: '#888' }}>正在加载治疗方案…</p></div>
+  if (!currentPlan) return <div className="page ct-page"><p style={{ padding: 24, color: '#888' }}>暂无治疗方案，请先确认诊断。</p></div>
 
   return (
     <div className="page ct-page">
@@ -180,7 +163,7 @@ export default function CommonTreatmentPage() {
               {selectedDiagnosis
                 ? `基于诊断：${selectedDiagnosis}`
                 : '基于患者信息智能推荐'}
-              &ensp;·&ensp;{MOCK_PLANS.length} 个参考方案
+              &ensp;·&ensp;{plans.length} 个参考方案
             </div>
           </div>
         </div>
@@ -189,7 +172,7 @@ export default function CommonTreatmentPage() {
       {/* ── 方案选择条 ── */}
       <div className="ct-plan-strip">
         <span className="ct-strip-label">参考方案</span>
-        {MOCK_PLANS.map(plan => {
+        {plans.map(plan => {
           const lv = LEVEL_COLOR[plan.plan_level]
           const isActive = currentPlan.plan_id === plan.plan_id
           return (

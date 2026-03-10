@@ -107,6 +107,7 @@
 /* ── 内容主体 ── */
 .pt-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 10px;
   display: flex;

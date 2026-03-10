@@ -93,6 +93,7 @@
 /* ── 主体 ── */
 .rk-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 10px;
   display: flex;

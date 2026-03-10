@@ -1,142 +1,432 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useAppStore } from '../store'
-import { ParsedEntity, EntityCategory } from '../types'
+import { ParsedEntity, EntityCategory, EntityStatus, PatientContext } from '../types'
+import { parseInput } from '../api/endpoints'
 import './common.css'
 import './InputPage.css'
 
-const CATEGORIES = ['症状', '体征', '疾病', '检查', '风险'] as unknown as EntityCategory[]
+// ── ViewModel 层 ──────────────────────────────────────
 
-const MOCK_PARSED: ParsedEntity[] = [
-  { id: 'e1', text: '胸闷', category: CATEGORIES[0], source: '主诉' as ParsedEntity['source'], confirmed: false },
-  { id: 'e2', text: '气短', category: CATEGORIES[0], source: '主诉' as ParsedEntity['source'], confirmed: false },
-  { id: 'e3', text: '心悸', category: CATEGORIES[0], source: '主诉' as ParsedEntity['source'], confirmed: false },
-  { id: 'e4', text: '乏力', category: CATEGORIES[0], source: '现病史' as ParsedEntity['source'], confirmed: false },
-  { id: 'e5', text: '血压控制欠佳', category: CATEGORIES[1], source: '现病史' as ParsedEntity['source'], confirmed: false },
-  { id: 'e6', text: '血糖控制不佳', category: CATEGORIES[4], source: '现病史' as ParsedEntity['source'], confirmed: false },
-  { id: 'e7', text: '高血压', category: CATEGORIES[2], source: '既往史' as ParsedEntity['source'], confirmed: true },
-  { id: 'e8', text: '糖尿病', category: CATEGORIES[2], source: '既往史' as ParsedEntity['source'], confirmed: true },
-  { id: 'e9', text: '冠脉狭窄 50%', category: CATEGORIES[3], source: '既往史' as ParsedEntity['source'], confirmed: true },
-  { id: 'e10', text: '青霉素过敏', category: CATEGORIES[4], source: '既往史' as ParsedEntity['source'], confirmed: true }
-]
+type ClinicalGroupId = 'presentation' | 'history' | 'examination' | 'risk'
 
-const CATEGORY_COLORS: Record<string, string> = {
-  [CATEGORIES[0]]: '#3498db',
-  [CATEGORIES[1]]: '#2ecc71',
-  [CATEGORIES[2]]: '#e74c3c',
-  [CATEGORIES[3]]: '#f39c12',
-  [CATEGORIES[4]]: '#9b59b6'
+interface ClinicalGroupConfig {
+  id: ClinicalGroupId
+  label: string
+  icon: string
+  color: string
+  categories: EntityCategory[]
 }
 
-export default function InputPage() {
-  const { parsedEntities, setParsedEntities, toggleEntityConfirm, removeEntity, addEntity, updateEntityCategory } = useAppStore()
-  const [addText, setAddText] = useState('')
-  const [addCategory, setAddCategory] = useState<EntityCategory>(CATEGORIES[0])
+interface ClinicalGroupView extends ClinicalGroupConfig {
+  active: ParsedEntity[]
+  excluded: ParsedEntity[]
+}
 
-  useEffect(() => {
-    if (parsedEntities.length === 0) {
-      setParsedEntities(MOCK_PARSED)
+const CLINICAL_GROUPS: ClinicalGroupConfig[] = [
+  { id: 'presentation', label: '症状与体征',     icon: '◉', color: '#2980b9', categories: ['症状', '体征'] },
+  { id: 'history',      label: '既往史与基础疾病', icon: '◷', color: '#c0392b', categories: ['疾病'] },
+  { id: 'examination',  label: '检查与化验',      icon: '⊞', color: '#d35400', categories: ['检查'] },
+  { id: 'risk',         label: '风险因素',        icon: '⚑', color: '#7d3c98', categories: ['风险'] },
+]
+
+function buildClinicalGroups(entities: ParsedEntity[]): ClinicalGroupView[] {
+  return CLINICAL_GROUPS.map(cfg => {
+    const all = entities.filter(e => cfg.categories.includes(e.category))
+    return {
+      ...cfg,
+      active:   all.filter(e => e.status !== 'excluded'),
+      excluded: all.filter(e => e.status === 'excluded'),
     }
-  }, [parsedEntities.length, setParsedEntities])
+  })
+}
 
-  const handleAdd = () => {
-    if (!addText.trim()) {
-      return
+// ── 就绪判断 ──────────────────────────────────────────
+
+interface MissingChip { text: string; category: EntityCategory }
+
+interface Readiness {
+  canProceed: boolean
+  statusMessage: string           // 状态行文案
+  suggestion: string | null       // 建议补充文案（null = 无需提示）
+  suggestionChips: MissingChip[]  // 建议补充的快捷 chip
+}
+
+const SIGN_CHIPS: MissingChip[] = [
+  { text: '血压',    category: '体征' },
+  { text: '心率',    category: '体征' },
+  { text: '血氧饱和度', category: '体征' },
+  { text: '体温',    category: '体征' },
+  { text: '呼吸频率', category: '体征' },
+]
+
+function computeReadiness(entities: ParsedEntity[]): Readiness {
+  const accepted = entities.filter(e => e.status === 'accepted')
+
+  if (accepted.length === 0) {
+    return {
+      canProceed: false,
+      statusMessage: '请先保留至少一条临床信息后再进入诊断',
+      suggestion: null,
+      suggestionChips: [],
     }
-
-    addEntity({
-      id: `manual-${Date.now()}`,
-      text: addText.trim(),
-      category: addCategory,
-      source: '补充' as ParsedEntity['source'],
-      confirmed: true
-    })
-    setAddText('')
   }
 
-  const cycleCategory = (id: string, current: EntityCategory) => {
-    const index = CATEGORIES.indexOf(current)
-    const nextCategory = CATEGORIES[(index + 1) % CATEGORIES.length]
-    updateEntityCategory(id, nextCategory)
-  }
+  const addedSignTexts = new Set(
+    accepted.filter(e => e.category === '体征').map(e => e.text)
+  )
+  const remainingChips = SIGN_CHIPS.filter(c => !addedSignTexts.has(c.text))
+  const missingSigns = remainingChips.length > 0 && addedSignTexts.size === 0
 
-  const confirmedCount = parsedEntities.filter(entity => entity.confirmed).length
-  const sourceSummary = useMemo(() => {
-    const sourceMap = new Map<string, number>()
-    parsedEntities.forEach(entity => {
-      sourceMap.set(entity.source, (sourceMap.get(entity.source) ?? 0) + 1)
-    })
-    return Array.from(sourceMap.entries()).map(([source, count]) => `${source} ${count} 条`)
-  }, [parsedEntities])
+  return {
+    canProceed: true,
+    statusMessage: '当前信息已足够进入辅助诊断',
+    suggestion: missingSigns ? '补充生命体征可提高建议准确性' : null,
+    suggestionChips: missingSigns ? remainingChips.slice(0, 5) : [],
+  }
+}
+
+// ── Area 1：来源说明条 ────────────────────────────────
+
+function SourceSummaryBar({
+  sources, onReparse, loading, canReparse,
+}: {
+  sources: string[]
+  onReparse: () => void
+  loading: boolean
+  canReparse: boolean
+}) {
+  return (
+    <div className="ip-source-bar">
+      <span className="ip-source-bar-label">已分析患者文档：</span>
+      <span className="ip-source-names">{sources.join(' · ') || '—'}</span>
+      <button className="ip-reparse-btn" onClick={onReparse} disabled={loading || !canReparse}>
+        {loading ? '解析中…' : '重新解析'}
+      </button>
+    </div>
+  )
+}
+
+// ── Area 2：已采纳实体行 ──────────────────────────────
+
+function ActiveEntityRow({
+  entity, onExclude,
+}: {
+  entity: ParsedEntity
+  onExclude: (id: string) => void
+}) {
+  const isAllergy = entity.text.includes('过敏')
+  return (
+    <div className="ip-active-row">
+      <span className="ip-active-text">{entity.text}</span>
+      {isAllergy && <span className="ip-allergy-badge">⚠ 过敏禁忌</span>}
+      <span className="ip-active-source">{entity.source}</span>
+      <button className="ip-exclude-btn" title="排除此项" onClick={() => onExclude(entity.id)}>
+        ×
+      </button>
+    </div>
+  )
+}
+
+// ── Area 2：单个临床分组卡片 ──────────────────────────
+// 职责：展示已有信息 + 允许排除。不显示缺失提示。
+
+function ClinicalGroupCard({
+  group, onExclude, onUndo, onEmptyAdd,
+}: {
+  group: ClinicalGroupView
+  onExclude: (id: string) => void
+  onUndo: (id: string) => void
+  onEmptyAdd: (category: EntityCategory) => void
+}) {
+  const [excludedOpen, setExcludedOpen] = useState(false)
+  const isEmpty = group.active.length === 0 && group.excluded.length === 0
 
   return (
-    <div className="page">
-      <div className="section">
-        <div className="section-title">来源摘要</div>
-        <div className="context-note">HIS 上下文仅作为后台输入来源，不在前台复刻原始文本。</div>
-        <div className="source-tag-list">
-          {sourceSummary.map(item => (
-            <span key={item} className="source-tag">
-              {item}
+    <div className="ip-group-card">
+      <div className="ip-group-header" style={{ borderLeftColor: group.color }}>
+        <span className="ip-group-icon" style={{ color: group.color }}>{group.icon}</span>
+        <span className="ip-group-label">{group.label}</span>
+      </div>
+
+      {group.active.length > 0 && (
+        <div className="ip-active-list">
+          {group.active.map(e => (
+            <ActiveEntityRow key={e.id} entity={e} onExclude={onExclude} />
+          ))}
+        </div>
+      )}
+
+      {isEmpty && (
+        <div className="ip-group-empty">
+          未识别到{group.label}信息
+          <button className="ip-group-add-btn" onClick={() => onEmptyAdd(group.categories[0])}>
+            + 补录
+          </button>
+        </div>
+      )}
+
+      {group.excluded.length > 0 && (
+        <div className="ip-excluded-section">
+          <button className="ip-excluded-toggle" onClick={() => setExcludedOpen(v => !v)}>
+            {group.excluded.length} 条未纳入 {excludedOpen ? '▴' : '▾'}
+          </button>
+          {excludedOpen && (
+            <div className="ip-excluded-list">
+              {group.excluded.map(e => (
+                <div key={e.id} className="ip-excluded-row">
+                  <span className="ip-excluded-text">{e.text}</span>
+                  <button className="ip-undo-btn" onClick={() => onUndo(e.id)}>撤销</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Area 3：快速补录 ──────────────────────────────────
+
+const CATEGORY_PILLS: { label: string; category: EntityCategory }[] = [
+  { label: '症状表现',      category: '症状' },
+  { label: '生命体征',      category: '体征' },
+  { label: '既往史 / 用药', category: '疾病' },
+  { label: '辅助检查',      category: '检查' },
+  { label: '风险因素',      category: '风险' },
+]
+
+function QuickAddBar({
+  focusCategory, onAdd,
+}: {
+  focusCategory: EntityCategory | null
+  onAdd: (text: string, category: EntityCategory) => void
+}) {
+  const [text, setText] = useState('')
+  const [cat, setCat]   = useState<EntityCategory>('症状')
+  const inputRef        = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (focusCategory) {
+      setCat(focusCategory)
+      setTimeout(() => inputRef.current?.focus(), 50)
+    }
+  }, [focusCategory])
+
+  const handleAdd = () => {
+    if (!text.trim()) return
+    onAdd(text.trim(), cat)
+    setText('')
+    inputRef.current?.focus()
+  }
+
+  return (
+    <div className="ip-quickadd-bar">
+      <div className="ip-quickadd-question">还有需要补充的信息吗？</div>
+      <div className="ip-quickadd-pills">
+        {CATEGORY_PILLS.map(p => (
+          <button
+            key={p.category}
+            className={`ip-quickadd-pill ${cat === p.category ? 'active' : ''}`}
+            onClick={() => { setCat(p.category); inputRef.current?.focus() }}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <div className="ip-quickadd-row">
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder="例如：血压 145/90 mmHg、有吸烟史 30 年…"
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleAdd()}
+        />
+        <button onClick={handleAdd} disabled={!text.trim()}>添加</button>
+      </div>
+    </div>
+  )
+}
+
+// ── Area 4：确认预览（含就绪判断 + 建议补充） ─────────
+
+function ConfirmationPreview({
+  clinicalGroups, readiness, onChipAdd, onConfirm,
+}: {
+  clinicalGroups: ClinicalGroupView[]
+  readiness: Readiness
+  onChipAdd: (chip: MissingChip) => void
+  onConfirm: () => void
+}) {
+  const summary = clinicalGroups
+    .map(g => ({ label: g.label, count: g.active.length }))
+    .filter(g => g.count > 0)
+
+  return (
+    <div className="ip-confirm-preview">
+      {/* 就绪状态行 */}
+      <div className={`ip-readiness-row ${readiness.canProceed ? 'ok' : 'blocked'}`}>
+        <span className="ip-readiness-icon">{readiness.canProceed ? '✓' : '○'}</span>
+        <span className="ip-readiness-msg">{readiness.statusMessage}</span>
+      </div>
+
+      {/* 已接受信息摘要 */}
+      {summary.length > 0 && (
+        <div className="ip-confirm-groups">
+          {summary.map((g, i) => (
+            <span key={g.label}>
+              {i > 0 && <span className="ip-confirm-sep">·</span>}
+              <span className="ip-confirm-group-item">{g.label} {g.count} 项</span>
             </span>
           ))}
         </div>
-      </div>
+      )}
 
-      <div className="section">
-        <div className="section-title">
-          解析结果
-          <span className="entity-count">
-            {confirmedCount}/{parsedEntities.length} 已确认
-          </span>
+      {summary.length > 0 && (
+        <div className="ip-confirm-downstream">
+          将用于 → 辅助诊断 · 量表评估 · 个性化治疗方案
         </div>
-        <div className="entity-list">
-          {parsedEntities.map(entity => (
-            <div key={entity.id} className={`entity-row ${entity.confirmed ? 'confirmed' : ''}`}>
-              <span
-                className="entity-cat"
-                style={{ background: CATEGORY_COLORS[entity.category] ?? '#3498db' }}
-                onClick={() => cycleCategory(entity.id, entity.category)}
-                title="点击切换分类"
-              >
-                {entity.category}
-              </span>
-              <span className="entity-text">{entity.text}</span>
-              <span className="entity-source">{entity.source}</span>
+      )}
+
+      {/* 建议补充区（非阻塞） */}
+      {readiness.suggestion && (
+        <div className="ip-suggestion-row">
+          <span className="ip-suggestion-icon">💡</span>
+          <span className="ip-suggestion-text">{readiness.suggestion}</span>
+          <div className="ip-suggestion-chips">
+            {readiness.suggestionChips.map(chip => (
               <button
-                className={`entity-btn ${entity.confirmed ? 'btn-confirmed' : 'btn-unconfirmed'}`}
-                onClick={() => toggleEntityConfirm(entity.id)}
-                title={entity.confirmed ? '取消确认' : '确认'}
+                key={chip.text}
+                className="ip-suggestion-chip"
+                onClick={() => onChipAdd(chip)}
               >
-                {entity.confirmed ? '✓' : '○'}
+                + {chip.text}
               </button>
-              <button className="entity-btn btn-remove" onClick={() => removeEntity(entity.id)} title="删除">
-                ✕
-              </button>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+      )}
+
+      {/* CTA */}
+      <button
+        className="ip-confirm-btn"
+        onClick={onConfirm}
+        disabled={!readiness.canProceed}
+      >
+        确认信息并进入辅助诊断
+      </button>
+    </div>
+  )
+}
+
+// ── 主组件 ────────────────────────────────────────────
+
+export default function InputPage() {
+  const {
+    parsedEntities, setParsedEntities,
+    setEntityStatus, addEntity,
+    patientContext, setCurrentStep, showToast,
+  } = useAppStore()
+
+  const [loading, setLoading]             = useState(false)
+  const [focusCategory, setFocusCategory] = useState<EntityCategory | null>(null)
+
+  useEffect(() => {
+    if (parsedEntities.length > 0 || !patientContext) return
+    runParse(patientContext)
+  }, [patientContext]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function runParse(ctx: PatientContext) {
+    setLoading(true)
+    parseInput({
+      chief_complaint: ctx.chief_complaint,
+      present_illness: ctx.present_illness,
+      past_history:    ctx.past_history,
+    })
+      .then(res => setParsedEntities(
+        res.entities.map(e => ({ ...e, status: 'accepted' as EntityStatus }))
+      ))
+      .catch(() => showToast('解析失败，请重新尝试', 'error'))
+      .finally(() => setLoading(false))
+  }
+
+  const handleReparse = () => {
+    if (!patientContext) return
+    setParsedEntities([])
+    runParse(patientContext)
+  }
+
+  const makeEntity = (text: string, category: EntityCategory): ParsedEntity => ({
+    id: `manual-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    text, category, source: '补充', status: 'accepted',
+  })
+
+  const handleAdd = (text: string, category: EntityCategory) => {
+    addEntity(makeEntity(text, category))
+    setFocusCategory(null)
+  }
+
+  const handleChipAdd = (chip: MissingChip) => {
+    addEntity(makeEntity(chip.text, chip.category))
+  }
+
+  const handleConfirm = () => {
+    if (!readiness.canProceed) { showToast('请先保留至少一条临床信息', 'error'); return }
+    setCurrentStep('diagnosis')
+  }
+
+  const sources = useMemo(() => {
+    const order = ['主诉', '现病史', '既往史', '补充']
+    const present = new Set(
+      parsedEntities.filter(e => e.status !== 'excluded').map(e => e.source)
+    )
+    return order.filter(s => present.has(s))
+  }, [parsedEntities])
+
+  const clinicalGroups = useMemo(
+    () => buildClinicalGroups(parsedEntities),
+    [parsedEntities]
+  )
+
+  const readiness = useMemo(
+    () => computeReadiness(parsedEntities),
+    [parsedEntities]
+  )
+
+  if (loading) {
+    return <div className="page"><p className="ip-loading">正在解析 HIS 文本…</p></div>
+  }
+
+  return (
+    <div className="page ip-page">
+      <SourceSummaryBar
+        sources={sources}
+        onReparse={handleReparse}
+        loading={loading}
+        canReparse={!!patientContext}
+      />
+
+      <div className="ip-groups">
+        {clinicalGroups.map(group => (
+          <ClinicalGroupCard
+            key={group.id}
+            group={group}
+            onExclude={id => setEntityStatus(id, 'excluded')}
+            onUndo={id => setEntityStatus(id, 'accepted')}
+            onEmptyAdd={cat => setFocusCategory(cat)}
+          />
+        ))}
       </div>
 
-      <div className="section">
-        <div className="section-title">补充输入</div>
-        <div className="add-row">
-          <select value={addCategory} onChange={event => setAddCategory(event.target.value as EntityCategory)}>
-            {CATEGORIES.map(category => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            placeholder="输入补充信息..."
-            value={addText}
-            onChange={event => setAddText(event.target.value)}
-            onKeyDown={event => event.key === 'Enter' && handleAdd()}
-          />
-          <button onClick={handleAdd}>添加</button>
-        </div>
-      </div>
+      <QuickAddBar focusCategory={focusCategory} onAdd={handleAdd} />
+
+      <ConfirmationPreview
+        clinicalGroups={clinicalGroups}
+        readiness={readiness}
+        onChipAdd={handleChipAdd}
+        onConfirm={handleConfirm}
+      />
     </div>
   )
 }

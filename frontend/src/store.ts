@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { PatientContext, DiagnosisRecommendation, TreatmentPlan, TestRecommendation, RiskAssessment, StepId, ParsedEntity, EntityCategory, SearchCategory, SearchResult, SearchStatus, WritebackStatus, ToastMessage } from './types'
+import { PatientContext, DiagnosisRecommendation, TreatmentPlan, TestRecommendation, RiskAssessment, StepId, ParsedEntity, EntityCategory, EntityStatus, SearchCategory, SearchResult, SearchStatus, WritebackStatus, ToastMessage } from './types'
 
 interface AppState {
   currentStep: StepId
@@ -48,7 +48,8 @@ interface AppState {
   setCurrentStep: (step: StepId) => void
   setPatientContext: (context: PatientContext) => void
   setParsedEntities: (entities: ParsedEntity[]) => void
-  toggleEntityConfirm: (id: string) => void
+  setEntityStatus: (id: string, status: EntityStatus) => void
+  acceptAllPending: () => void
   removeEntity: (id: string) => void
   addEntity: (entity: ParsedEntity) => void
   updateEntityCategory: (id: string, category: EntityCategory) => void
@@ -80,6 +81,9 @@ interface AppState {
   openWritebackModal: () => void
   closeWritebackModal: () => void
   setWritebackStatus: (status: WritebackStatus) => void
+
+  // 会话恢复
+  restoreSession: (state: Record<string, unknown>) => void
 
   // Toast actions
   showToast: (message: string, type: ToastMessage['type']) => void
@@ -120,8 +124,11 @@ export const useAppStore = create<AppState>((set) => ({
   setCurrentStep: (step) => set({ currentStep: step }),
   setPatientContext: (context) => set({ patientContext: context }),
   setParsedEntities: (entities) => set({ parsedEntities: entities }),
-  toggleEntityConfirm: (id) => set((state) => ({
-    parsedEntities: state.parsedEntities.map(e => e.id === id ? { ...e, confirmed: !e.confirmed } : e)
+  setEntityStatus: (id, status) => set((state) => ({
+    parsedEntities: state.parsedEntities.map(e => e.id === id ? { ...e, status } : e)
+  })),
+  acceptAllPending: () => set((state) => ({
+    parsedEntities: state.parsedEntities.map(e => e.status === 'pending' ? { ...e, status: 'accepted' } : e)
   })),
   removeEntity: (id) => set((state) => ({
     parsedEntities: state.parsedEntities.filter(e => e.id !== id)
@@ -164,6 +171,20 @@ export const useAppStore = create<AppState>((set) => ({
   setSearchStatus: (status) => set({ searchStatus: status }),
   setSelectedResult: (result) => set({ selectedResult: result }),
   resetSearch: () => set({ searchKeyword: '', searchResults: [], searchStatus: 'idle', selectedResult: null }),
+
+  restoreSession: (state) => set({
+    ...(state.selectedDiagnosis !== undefined && { selectedDiagnosis: state.selectedDiagnosis as string }),
+    ...(state.selectedCommonPlan !== undefined && { selectedCommonPlan: state.selectedCommonPlan as string }),
+    ...(state.selectedPersonalizedPlan !== undefined && { selectedPersonalizedPlan: state.selectedPersonalizedPlan as string }),
+    ...(Array.isArray(state.selectedTests) && { selectedTests: state.selectedTests as string[] }),
+    ...(Array.isArray(state.parsedEntities) && {
+      // 兼容旧会话格式：confirmed: boolean → status: EntityStatus
+      parsedEntities: (state.parsedEntities as any[]).map(e => ({
+        ...e,
+        status: (e.status as EntityStatus) ?? (e.confirmed ? 'accepted' : 'pending'),
+      })) as ParsedEntity[],
+    }),
+  }),
 
   openWritebackModal: () => set({ writebackModalOpen: true, writebackStatus: 'previewing' }),
   closeWritebackModal: () => set({ writebackModalOpen: false, writebackStatus: 'idle' }),

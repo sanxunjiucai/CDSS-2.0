@@ -1,5 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useAppStore } from '../store'
+import { interpretLabResults } from '../api/endpoints'
+import type { LabResult as ApiLabResult } from '../api/endpoints'
 import './common.css'
 import './LabResultsPage.css'
 
@@ -61,7 +63,10 @@ interface LinkageItem {
 }
 
 // ══════════════════════════════════════════════════════
-// Mock 数据
+// HIS 数据源层
+// 以下为模拟从 HIS 注入的原始检验结果。
+// 生产环境应替换为真实 HIS 数据接口。
+// 解读注释（clinical_note）和诊断预警由 /api/lab-results/interpret 覆盖。
 // ══════════════════════════════════════════════════════
 
 const MOCK_RESULTS: LabResult[] = [
@@ -254,21 +259,6 @@ const MOCK_RESULTS: LabResult[] = [
   },
 ]
 
-const MOCK_DIAGNOSIS_ALERTS: DiagnosisAlert[] = [
-  {
-    level: 'critical',
-    title: '⚡ 诊断需升级 — hs-cTnI 连续升高确认心肌损伤',
-    detail: '按 ESC 0h/1h 快速诊断方案，hs-cTnI 1 小时 Δ 值超过阈值（0.032 > 0.006 ng/mL），结合 ST 段持续压低，当前诊断"不稳定型心绞痛"应修正为"NSTEMI"。',
-    action: '前往辅助诊断更新诊断',
-  },
-  {
-    level: 'warning',
-    title: 'NT-proBNP 显著升高 — 关注心功能状态',
-    detail: 'NT-proBNP 780 pg/mL（> 6×ULN），需心脏超声确认 LVEF，排除合并急性心力衰竭。',
-    action: '加急完成心脏超声；若 LVEF < 40%，需重新评估治疗方案',
-  },
-]
-
 const MOCK_ACTION_RECS: ActionRecommendation[] = [
   // 建议补充检查
   { type: 'exam', priority: 'urgent',      content: '心脏彩超（超声心动图）— 明确 LVEF，NT-proBNP 升高需评估心功能',           target_step: 'tests', target_label: '前往检验检查' },
@@ -450,6 +440,34 @@ export default function LabResultsPage() {
   const [summaryGenerated, setSummaryGenerated] = useState(false)
   const [summaryOpen,      setSummaryOpen]      = useState(false)
   const [copied,           setCopied]           = useState(false)
+  const [commentMap,       setCommentMap]       = useState<Record<string, string>>({})
+  // diagnosisAlerts 完全由 /api/lab-results/interpret 驱动，不使用本地 Mock
+  const [diagnosisAlerts,  setDiagnosisAlerts]  = useState<DiagnosisAlert[]>([])
+
+  useEffect(() => {
+    const apiResults: ApiLabResult[] = MOCK_RESULTS.map(r => ({
+      test_id: r.test_id,
+      test_name: r.name,
+      value: r.value,
+      unit: r.unit,
+      reference_range: r.ref_range,
+      status: (r.status === 'critical_high' || r.status === 'critical_low') ? 'critical' : r.status,
+    }))
+    interpretLabResults(apiResults)
+      .then(res => {
+        const map: Record<string, string> = {}
+        res.results.forEach(ir => { map[ir.test_id] = ir.comment })
+        setCommentMap(map)
+        // 始终用 API 结果覆盖（空列表也表示无预警）
+        setDiagnosisAlerts((res.alerts ?? []).map(a => ({
+          level: (a.status === 'critical' ? 'critical' : a.status === 'high' ? 'warning' : 'info') as DiagnosisAlert['level'],
+          title: `${a.test_name} — ${a.message}`,
+          detail: a.message,
+          action: '',
+        })))
+      })
+      .catch(err => console.error('interpretLabResults failed', err))
+  }, [])
 
   const criticalResults = MOCK_RESULTS.filter(r => r.status === 'critical_high' || r.status === 'critical_low')
   const abnormalCount   = MOCK_RESULTS.filter(r => r.status !== 'normal').length
@@ -555,7 +573,7 @@ export default function LabResultsPage() {
                   </div>
                   <div className="lr-crit-content">
                     {r.delta && <div className="lr-crit-delta">{r.delta}</div>}
-                    <div className="lr-crit-note">{r.clinical_note}</div>
+                    <div className="lr-crit-note">{commentMap[r.test_id] ?? r.clinical_note}</div>
                     {r.immediate_action && (
                       <div className="lr-crit-action">
                         <span className="lr-crit-action-icon">→</span>
@@ -570,7 +588,7 @@ export default function LabResultsPage() {
         )}
 
         {/* ════════════════ 诊断影响预警 ════════════════ */}
-        {MOCK_DIAGNOSIS_ALERTS.map((alert, i) => {
+        {diagnosisAlerts.map((alert, i) => {
           const cfg = ALERT_LEVEL_CFG[alert.level]
           return (
             <div key={i} className="lr-diagnosis-alert" style={{ background: cfg.bg, borderColor: cfg.border }}>
@@ -657,7 +675,7 @@ export default function LabResultsPage() {
                         <div className="lr-result-detail">
                           <div className="lr-detail-block">
                             <div className="lr-detail-label">临床解读</div>
-                            <p className="lr-detail-text">{result.clinical_note}</p>
+                            <p className="lr-detail-text">{commentMap[result.test_id] ?? result.clinical_note}</p>
                           </div>
                           <div className="lr-detail-block">
                             <div className="lr-detail-label">

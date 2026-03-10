@@ -14,7 +14,7 @@ interface Props {
 }
 
 const PAGE_CONFIG: Record<StepId, { hint: string; primaryLabel: string; showCopy: boolean }> = {
-  'input':                  { hint: '确认解析结果，生成回写预览后可同步至 HIS', primaryLabel: '确认解析结果',   showCopy: false },
+  'input':                  { hint: '接受信息项后，将进入辅助诊断推理', primaryLabel: '确认信息并进入辅助诊断', showCopy: false },
   'diagnosis':              { hint: '选择诊断后可进入治疗方案',                 primaryLabel: '确认诊断方案',   showCopy: true  },
   'common-treatment':       { hint: '选定通用方案后可进行个性化调整',            primaryLabel: '确认通用治疗',   showCopy: true  },
   'personalized-treatment': { hint: '完成个性化调整后可推荐检验检查',            primaryLabel: '确认个性化方案', showCopy: true  },

@@ -1,178 +1,443 @@
-.context-note {
-  font-size: 12px;
-  color: #5f7386;
-  line-height: 1.6;
-  margin-bottom: 8px;
-}
+/* ══════════════════════════════
+   InputPage — 辅助输入页
+   ══════════════════════════════ */
 
-.source-tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.source-tag {
-  font-size: 11px;
-  color: #3f5f78;
-  padding: 2px 8px;
-  border-radius: 12px;
-  background: #eaf3fb;
-  border: 1px solid #d4e5f2;
-}
-
-.entity-count {
-  font-size: 11px;
-  font-weight: 400;
-  color: #7f8c9b;
-  margin-left: auto;
-}
-
-.entity-list {
+.ip-page {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 0;
+  padding: 0;
+  overflow-y: auto;
+  background: #f0f7fc;
 }
 
-.entity-row {
+.ip-loading {
+  padding: 24px;
+  color: #888;
+  font-size: 13px;
+}
+
+/* ── Area 1：来源说明条（极轻） ── */
+.ip-source-bar {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 6px;
+  padding: 6px 14px;
+  background: #f7fbfe;
+  border-bottom: 1px solid #e8f0f6;
+  flex-shrink: 0;
+}
+
+.ip-source-bar-label {
+  font-size: 11px;
+  color: #a0b4c5;
+  flex-shrink: 0;
+}
+
+.ip-source-names {
+  font-size: 11px;
+  color: #6a8ea8;
+  flex: 1;
+}
+
+.ip-reparse-btn {
+  padding: 2px 9px;
+  background: transparent;
+  border: 1px solid #c8dff0;
   border-radius: 4px;
-  background: #fafbfc;
-  border: 1px solid transparent;
-  transition: all 0.15s;
-}
-
-.entity-row:hover {
-  background: #f0f7fc;
-  border-color: #dce9f2;
-}
-
-.entity-row.confirmed {
-  background: #f0faf4;
-  border-color: #d4edda;
-}
-
-.entity-cat {
-  display: inline-block;
-  padding: 1px 6px;
-  font-size: 10px;
-  font-weight: 600;
-  color: white;
-  border-radius: 3px;
+  font-size: 11px;
+  color: #7aaac8;
   cursor: pointer;
   flex-shrink: 0;
-  min-width: 32px;
-  text-align: center;
-  user-select: none;
+  transition: color 0.12s, border-color 0.12s;
 }
 
-.entity-cat:hover {
-  opacity: 0.8;
+.ip-reparse-btn:hover:not(:disabled) { color: #1a6fa8; border-color: #8ab8d8; }
+.ip-reparse-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Area 2：分组区 ── */
+.ip-groups {
+  padding: 10px 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.entity-text {
-  flex: 1;
+.ip-group-card {
+  background: #fff;
+  border: 1px solid #dce9f2;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.ip-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px 8px;
+  border-left: 3px solid transparent;
+  background: #fafcfe;
+  border-bottom: 1px solid #f0f5f9;
+}
+
+.ip-group-icon { font-size: 13px; flex-shrink: 0; }
+
+.ip-group-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a3a50;
+}
+
+/* 空状态 */
+.ip-group-empty {
+  padding: 10px 14px;
   font-size: 12px;
-  color: #2c3e50;
+  color: #b0c0cc;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.entity-source {
+.ip-group-add-btn {
+  padding: 3px 10px;
+  border: 1px dashed #b8d8f0;
+  border-radius: 4px;
+  background: transparent;
+  font-size: 11px;
+  color: #1a6fa8;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.ip-group-add-btn:hover { background: #eaf4fd; }
+
+/* ── 已采纳实体：读为主，×为辅 ── */
+.ip-active-list {
+  padding: 2px 14px 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ip-active-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid #f5f9fc;
+}
+
+.ip-active-row:last-child { border-bottom: none; }
+
+/* 实体文本是主角：正常文字大小，不加任何视觉标记 */
+.ip-active-text {
+  flex: 1;
+  font-size: 13px;
+  color: #1a3a50;
+  line-height: 1.4;
+}
+
+.ip-allergy-badge {
   font-size: 10px;
-  color: #b0bec5;
+  font-weight: 600;
+  color: #c0392b;
+  background: #fdf0ef;
+  border: 1px solid #f5c6c2;
+  border-radius: 3px;
+  padding: 1px 5px;
   flex-shrink: 0;
 }
 
-.entity-btn {
+.ip-active-source {
+  font-size: 10px;
+  color: #c8d8e4;
+  flex-shrink: 0;
+}
+
+/* × 排除：默认隐藏，hover 行才显现，颜色淡 */
+.ip-exclude-btn {
   width: 20px;
   height: 20px;
   border: none;
   border-radius: 3px;
+  background: transparent;
+  color: #d0dce6;
+  font-size: 14px;
   cursor: pointer;
-  font-size: 11px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.15s;
   padding: 0;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.1s, color 0.1s, background 0.1s;
 }
 
-.btn-unconfirmed {
-  background: #ecf0f1;
-  color: #95a5a6;
+.ip-active-row:hover .ip-exclude-btn { opacity: 1; }
+.ip-exclude-btn:hover { color: #e74c3c; background: #fdecec; }
+
+/* ── 缺失提示：chip 方式 ── */
+.ip-missing-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #fffbf2;
+  border-top: 1px solid #faebd0;
 }
 
-.btn-unconfirmed:hover {
-  background: #d4edda;
-  color: #27ae60;
+.ip-missing-label {
+  font-size: 11px;
+  color: #b08030;
+  flex-shrink: 0;
+  margin-right: 2px;
 }
 
-.btn-confirmed {
-  background: #27ae60;
-  color: white;
+.ip-missing-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+
+/* chip 即点即录，不需要额外步骤 */
+.ip-missing-chip {
+  padding: 3px 10px;
+  border: 1px solid #f0c060;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 11px;
+  color: #a06000;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
 }
 
-.btn-confirmed:hover {
-  background: #2ecc71;
+.ip-missing-chip:hover { background: #fef3cd; border-color: #d4a020; }
+
+/* ── 已排除区（折叠，低优先级） ── */
+.ip-excluded-section { border-top: 1px solid #f0f5f9; }
+
+.ip-excluded-toggle {
+  width: 100%;
+  padding: 5px 14px;
+  text-align: left;
+  background: none;
+  border: none;
+  font-size: 11px;
+  color: #b0c0cc;
+  cursor: pointer;
+  transition: color 0.1s;
 }
 
-.btn-remove {
+.ip-excluded-toggle:hover { color: #7a8fa0; }
+
+.ip-excluded-list {
+  padding: 2px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ip-excluded-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.ip-excluded-text {
+  flex: 1;
+  font-size: 12px;
+  color: #b0bec5;
+  text-decoration: line-through;
+}
+
+.ip-undo-btn {
+  padding: 2px 8px;
+  border: 1px solid #d4e5f0;
+  border-radius: 4px;
   background: transparent;
-  color: #ccc;
+  font-size: 11px;
+  color: #5a8aaa;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.1s;
 }
 
-.btn-remove:hover {
-  background: #fdecec;
-  color: #e74c3c;
+.ip-undo-btn:hover { background: #eaf4fd; }
+
+/* ── Area 3：快速补录（临床问题导向） ── */
+.ip-quickadd-bar {
+  margin: 8px 10px 0;
+  background: #fff;
+  border: 1px solid #dce9f2;
+  border-radius: 9px;
+  padding: 12px 14px;
 }
 
-.add-row {
+.ip-quickadd-question {
+  font-size: 12px;
+  font-weight: 600;
+  color: #3a5a72;
+  margin-bottom: 9px;
+}
+
+/* 类别选择：pill 按钮，临床语言 */
+.ip-quickadd-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 9px;
+}
+
+.ip-quickadd-pill {
+  padding: 3px 10px;
+  border: 1px solid #d4e5f0;
+  border-radius: 12px;
+  background: #f5f9fc;
+  font-size: 11px;
+  color: #5a7d99;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.ip-quickadd-pill:hover { background: #e4f0fa; border-color: #a8cce8; }
+
+.ip-quickadd-pill.active {
+  background: #2980b9;
+  border-color: #2980b9;
+  color: #fff;
+}
+
+/* 输入行 */
+.ip-quickadd-row {
   display: flex;
   gap: 6px;
   align-items: center;
 }
 
-.add-row select {
-  padding: 4px 8px;
-  border: 1px solid #d4e5f0;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #4a6d8c;
-  background: white;
-  outline: none;
-  cursor: pointer;
-}
-
-.add-row select:focus {
-  border-color: #3498db;
-}
-
-.add-row input {
+.ip-quickadd-row input {
   flex: 1;
-  padding: 4px 8px;
+  padding: 6px 10px;
   border: 1px solid #d4e5f0;
-  border-radius: 4px;
+  border-radius: 5px;
   font-size: 12px;
+  color: #1a3a50;
   outline: none;
 }
 
-.add-row input:focus {
-  border-color: #3498db;
+.ip-quickadd-row input::placeholder { color: #b0c4d4; }
+.ip-quickadd-row input:focus { border-color: #3498db; }
+
+.ip-quickadd-row button {
+  padding: 6px 16px;
+  background: #3498db;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s;
 }
 
-.add-row button {
-  padding: 4px 12px;
-  background: #3498db;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
+.ip-quickadd-row button:hover:not(:disabled) { background: #2980b9; }
+.ip-quickadd-row button:disabled { background: #a8d4f0; cursor: not-allowed; }
+
+/* ── Area 4：确认预览 ── */
+.ip-confirm-preview {
+  margin: 8px 10px 10px;
+  background: #fff;
+  border: 1px solid #aed6f1;
+  border-radius: 9px;
+  padding: 13px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 就绪状态行 */
+.ip-readiness-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
   font-weight: 500;
 }
 
-.add-row button:hover {
-  background: #2980b9;
+.ip-readiness-row.ok   { color: #1e8449; }
+.ip-readiness-row.blocked { color: #a0b4c5; }
+
+.ip-readiness-icon {
+  font-size: 14px;
+  flex-shrink: 0;
 }
+
+/* 信息摘要 */
+.ip-confirm-groups {
+  font-size: 12px;
+  color: #4a6d8c;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+
+.ip-confirm-group-item { font-weight: 500; }
+.ip-confirm-sep { color: #c0d0dc; margin: 0 5px; }
+
+.ip-confirm-downstream {
+  font-size: 11px;
+  color: #8aafcc;
+}
+
+/* 建议补充区（非阻塞） */
+.ip-suggestion-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 8px 10px;
+  background: #f0f8ff;
+  border: 1px solid #d4eaf8;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.ip-suggestion-icon { font-size: 13px; flex-shrink: 0; }
+
+.ip-suggestion-text { color: #2471a3; flex-shrink: 0; }
+
+.ip-suggestion-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.ip-suggestion-chip {
+  padding: 2px 10px;
+  border: 1px solid #aed6f1;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 11px;
+  color: #1a6fa8;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.ip-suggestion-chip:hover { background: #daedf9; border-color: #7ab8da; }
+
+/* CTA */
+.ip-confirm-btn {
+  align-self: flex-end;
+  padding: 9px 22px;
+  background: #1a6fa8;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.ip-confirm-btn:hover:not(:disabled) { background: #15588a; }
+.ip-confirm-btn:disabled { background: #a8cfe6; cursor: not-allowed; }

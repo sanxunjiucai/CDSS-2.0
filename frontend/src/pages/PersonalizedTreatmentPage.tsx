@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useAppStore } from '../store'
+import { fetchPersonalizedTreatments } from '../api/endpoints'
 import './common.css'
 import './PersonalizedTreatmentPage.css'
 
@@ -62,95 +63,6 @@ interface PersonalizedPlanFull {
   monitors: MonitorIndicator[]
   alternatives: AlternativePlan[]
 }
-
-// ── Mock 数据 ─────────────────────────────────────────
-
-const MOCK_PLANS: PersonalizedPlanFull[] = [
-  {
-    plan_id: 'P001',
-    plan_name: '个性化调整方案（主推荐）',
-    base_plan_name: '标准抗心绞痛方案',
-    patient_factors: ['血糖控制不佳', '青霉素过敏', '心血管高危', '高血压'],
-    adjustments: [
-      {
-        type: 'replace',
-        description: '美托洛尔 → 比索洛尔',
-        original: '美托洛尔缓释片 47.5mg qd',
-        adjusted: '比索洛尔片 2.5mg qd',
-        reason: '血糖控制不佳时，美托洛尔（非选择性β阻滞剂）可掩盖低血糖症状；比索洛尔选择性更强，对血糖影响小。',
-        tag: '血糖控制不佳',
-      },
-      {
-        type: 'dose_adjust',
-        description: '阿托伐他汀维持 20mg（不强化）',
-        original: '阿托伐他汀 20mg qn',
-        adjusted: '阿托伐他汀 20mg qn（维持，不强化至 40mg）',
-        reason: '糖尿病患者大剂量他汀轻度升高血糖风险；当前血糖控制欠佳，维持 20mg 在获益与风险中取得平衡。',
-        tag: '血糖控制不佳',
-      },
-      {
-        type: 'add',
-        description: '新增 ACEI：培哚普利',
-        adjusted: '培哚普利片 4mg qd',
-        reason: '高血压合并糖尿病患者，ACEI 为优选降压药，同时具有肾脏保护作用（减少蛋白尿）。',
-        tag: '高血压 + 糖尿病',
-      },
-    ],
-    medications: [
-      { group: '抗血小板',  name: '阿司匹林肠溶片', dose: '100mg', route: '口服', frequency: 'qd',  is_adjusted: false },
-      { group: '抗血小板',  name: '氯吡格雷片',     dose: '75mg',  route: '口服', frequency: 'qd',  is_adjusted: false },
-      { group: '抗心绞痛', name: '单硝酸异山梨酯片', dose: '20mg',  route: '口服', frequency: 'bid', is_adjusted: false },
-      { group: '控制心率',  name: '比索洛尔片',     dose: '2.5mg', route: '口服', frequency: 'qd',  is_adjusted: true, adjust_type: 'replace', replaced_from: '美托洛尔缓释片', reason: '血糖控制不佳' },
-      { group: '调脂',      name: '阿托伐他汀钙片', dose: '20mg',  route: '口服', frequency: 'qn',  is_adjusted: true, adjust_type: 'dose_adjust', reason: '血糖控制不佳' },
-      { group: '降压/肾保护', name: '培哚普利片',  dose: '4mg',   route: '口服', frequency: 'qd',  is_adjusted: true, adjust_type: 'add', reason: '高血压 + 糖尿病' },
-    ],
-    cautions: [
-      { drug: '比索洛尔',    level: 'caution',  message: 'β阻滞剂仍可能减弱心率等低血糖预警信号，需增加血糖自我监测频率。',  action: '血糖监测≥2次/天' },
-      { drug: '培哚普利',    level: 'warning',  message: '启用 ACEI 1~2 周需复查血钾及肌酐，避免高钾血症及急性肾损伤。',    action: '2周内复查电解质+肌酐' },
-      { drug: '阿托伐他汀',  level: 'caution',  message: '他汀类轻度升高空腹血糖，合并糖尿病患者需监测 HbA1c 变化。',       action: '3月后复查肝功能+HbA1c' },
-      { drug: '氯吡格雷',    level: 'info',     message: '注意与质子泵抑制剂（奥美拉唑）的 CYP2C19 代谢相互作用。',         action: '必要时换用泮托拉唑' },
-    ],
-    monitors: [
-      { name: '血糖',     target: '空腹 4.4–7.0 mmol/L',  frequency: '每日监测',     icon: '🩸' },
-      { name: '血压',     target: '< 130/80 mmHg',         frequency: '每日',         icon: '🫀' },
-      { name: '心率',     target: '55–65 次/分',           frequency: '每日',         icon: '📈' },
-      { name: '血钾',     target: '3.5–5.0 mmol/L',       frequency: '2周后复查',    icon: '⚗' },
-      { name: 'eGFR/肌酐', target: '> 60 mL/min/1.73m²',  frequency: '3月复查',      icon: '🔬' },
-      { name: 'HbA1c',   target: '< 7.0%',               frequency: '每3月',        icon: '📊' },
-      { name: '肝功能',   target: 'ALT < 3×ULN',          frequency: '他汀用药3月',  icon: '🧪' },
-    ],
-    alternatives: [
-      {
-        id: 'A001',
-        condition: 'β阻滞剂禁忌或不耐受（如重度哮喘、II度房室传导阻滞）',
-        title: '地尔硫卓方案（心率控制替代）',
-        medications: [
-          { name: '地尔硫卓缓释片', dose: '60mg', frequency: 'bid' },
-        ],
-        reason: '地尔硫卓为非二氢吡啶类钙拮抗剂，具有心率控制作用，可替代β阻滞剂用于心绞痛及高血压。',
-      },
-      {
-        id: 'A002',
-        condition: '他汀类不耐受（肌痛、肌酶升高 > 5×ULN）',
-        title: '依折麦布 + 低剂量他汀方案',
-        medications: [
-          { name: '依折麦布片',   dose: '10mg',  frequency: 'qd' },
-          { name: '瑞舒伐他汀片', dose: '5mg',   frequency: 'qn' },
-        ],
-        reason: '依折麦布抑制肠道胆固醇吸收，与低剂量他汀联用可维持降脂效果，同时降低肌肉毒性风险。',
-      },
-      {
-        id: 'A003',
-        condition: '双联抗血小板出血风险高（PRECISE-DAPT 评分 ≥ 25 分）',
-        title: '单抗血小板方案',
-        medications: [
-          { name: '阿司匹林肠溶片', dose: '100mg', frequency: 'qd' },
-        ],
-        reason: '出血高危患者，权衡缺血与出血风险后可缩短 DAPT 疗程或转为单抗。',
-      },
-    ],
-  },
-]
 
 // ── 工具 ─────────────────────────────────────────────
 
@@ -234,25 +146,81 @@ export default function PersonalizedTreatmentPage() {
     showToast, openWritebackModal,
   } = useAppStore()
 
+  const [apiPlan, setApiPlan]               = useState<PersonalizedPlanFull | null>(null)
+  const [loading, setLoading]               = useState(false)
   const [expandedAlt, setExpandedAlt]       = useState<string | null>(null)
   const [summaryOpen, setSummaryOpen]       = useState(false)
   const [summaryGenerated, setSummaryGenerated] = useState(false)
   const [copied, setCopied]                 = useState(false)
 
-  const plan = MOCK_PLANS[0]   // 当前只有1个个性化方案
-  const isAdopted = selectedPersonalizedPlan === plan.plan_id
+  useEffect(() => {
+    if (!selectedDiagnosis) return
+    setLoading(true)
+    // patientContext may be null; pass a safe fallback so the API can still respond
+    const ctx = patientContext ?? {
+      patient_id: '', name: '', gender: '', age: 0, department: '',
+      visit_id: '', chief_complaint: '', present_illness: '',
+      past_history: '', chronic_diseases: [], allergies: [], risk_tags: [],
+    }
+    fetchPersonalizedTreatments(selectedDiagnosis, ctx)
+      .then(results => {
+        if (!results || results.length === 0) return
+        const p = results[0]
+        setApiPlan({
+          plan_id: p.plan_id,
+          plan_name: p.plan_name,
+          base_plan_name: '标准方案',
+          patient_factors: [
+            ...(ctx.chronic_diseases ?? []),
+            ...(ctx.risk_tags ?? []),
+          ],
+          adjustments: (p.adjustments ?? []).map(text => ({
+            type: 'replace' as AdjustType,
+            description: text,
+            adjusted: text,
+            reason: '',
+            tag: '',
+          })),
+          medications: (p.medications ?? []).map(m => ({
+            group: '',
+            name: m.name,
+            dose: m.dose,
+            route: m.route,
+            frequency: '',
+            is_adjusted: false,
+          })),
+          cautions: (p.contraindications ?? []).map(drug => ({
+            drug,
+            level: 'caution' as CautionLevel,
+            message: `${drug} 禁忌或需注意，请参考个性化调整说明`,
+            action: '遵医嘱处理',
+          })),
+          monitors: [],
+          alternatives: [],
+        })
+      })
+      .catch(err => console.error('fetchPersonalizedTreatments failed', err))
+      .finally(() => setLoading(false))
+  }, [selectedDiagnosis, patientContext])
 
-  const summary = useMemo(() => buildSummary(
+  const plan = apiPlan
+  const isAdopted = plan ? selectedPersonalizedPlan === plan.plan_id : false
+
+  const summary = useMemo(() => plan ? buildSummary(
     plan,
     selectedDiagnosis,
     patientContext?.name ?? '',
     patientContext?.visit_id ?? '',
-  ), [plan, selectedDiagnosis, patientContext])
+  ) : '', [plan, selectedDiagnosis, patientContext])
 
   const handleAdopt = () => {
+    if (!plan) return
     setSelectedPersonalizedPlan(plan.plan_id)
     showToast('已标记为当前采用方案', 'success')
   }
+
+  if (loading) return <div className="page pt-page"><p style={{ padding: 24, color: '#888' }}>正在加载个性化方案…</p></div>
+  if (!plan) return <div className="page pt-page"><p style={{ padding: 24, color: '#888' }}>暂无个性化方案，请先确认诊断。</p></div>
 
   const handleGenerateSummary = () => {
     setSummaryGenerated(true)

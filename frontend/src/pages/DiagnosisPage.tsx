@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useAppStore } from '../store'
+import { fetchDiagnoses } from '../api/endpoints'
 import './common.css'
 import './DiagnosisPage.css'
 
@@ -36,76 +37,6 @@ interface DiagnosisItem {
   tags: string[]
 }
 
-// ── Mock 数据 ─────────────────────────────────────────
-
-const MOCK_DIAGNOSES: DiagnosisItem[] = [
-  {
-    id: 'd1',
-    disease_name: '冠心病 — 不稳定型心绞痛',
-    icd_code: 'I20.0',
-    confidence: 0.88,
-    priority: 1,
-    match_label: '高度匹配',
-    reasoning: '胸闷、气短、心悸三联症状，活动后加重且休息可缓解，高度符合缺血性心脏病典型表现；叠加高血压 + 糖尿病双重危险因素。',
-    evidence: [
-      { text: '胸闷（主诉）',            type: 'symptom', weight: 'strong'     },
-      { text: '气短（主诉）',            type: 'symptom', weight: 'strong'     },
-      { text: '心悸（主诉）',            type: 'symptom', weight: 'strong'     },
-      { text: '活动后加重，休息缓解（现病史）', type: 'pattern', weight: 'strong' },
-      { text: '高血压 10 年（既往史）',  type: 'history', weight: 'moderate'   },
-      { text: '糖尿病 5 年（既往史）',   type: 'history', weight: 'moderate'   },
-      { text: '心血管高危（风险标签）',  type: 'risk',    weight: 'supportive' },
-    ],
-    differential: [
-      { disease: '急性心肌梗死',   relationship: 'exclude',  note: '需肌钙蛋白 + 心电图鉴别；症状若持续 > 20 分钟需排除' },
-      { disease: '心律失常-房颤',  relationship: 'consider', note: '心悸症状需心电图评估是否合并房颤' },
-      { disease: '心力衰竭',       relationship: 'consider', note: '乏力 + 气短可合并存在，BNP 有助鉴别' },
-      { disease: '焦虑/躯体化障碍', relationship: 'monitor', note: '心悸症状需排除心理因素，心电图正常时考虑' },
-    ],
-    tags: ['首选诊断', '需立即处理'],
-  },
-  {
-    id: 'd2',
-    disease_name: '心律失常 — 阵发性房颤',
-    icd_code: 'I48.0',
-    confidence: 0.72,
-    priority: 2,
-    match_label: '中度匹配',
-    reasoning: '心悸症状显著，叠加心血管基础病史，需心电图评估是否存在阵发性房颤。活动后心悸加重亦符合房颤特征。',
-    evidence: [
-      { text: '心悸（主诉）',           type: 'symptom', weight: 'strong'     },
-      { text: '乏力（现病史）',         type: 'symptom', weight: 'moderate'   },
-      { text: '高血压 10 年（既往史）', type: 'history', weight: 'supportive' },
-      { text: '糖尿病 5 年（既往史）',  type: 'history', weight: 'supportive' },
-    ],
-    differential: [
-      { disease: '室上性心动过速（SVT）', relationship: 'exclude',  note: '突发突止的心悸需排查 SVT，Holter 有助鉴别' },
-      { disease: '甲状腺功能亢进',        relationship: 'consider', note: '心悸 + 乏力需检测甲状腺功能' },
-    ],
-    tags: ['需排查', '需心电图'],
-  },
-  {
-    id: 'd3',
-    disease_name: '慢性心力衰竭（代偿期）',
-    icd_code: 'I50.9',
-    confidence: 0.61,
-    priority: 3,
-    match_label: '低度匹配',
-    reasoning: '气短 + 乏力持续存在，且患者具有高血压和糖代谢异常双重危险因素，需排查是否存在早期心功能不全。',
-    evidence: [
-      { text: '气短（主诉）',            type: 'symptom', weight: 'moderate'   },
-      { text: '乏力（现病史）',          type: 'symptom', weight: 'moderate'   },
-      { text: '活动耐量下降（现病史）',  type: 'pattern', weight: 'supportive' },
-      { text: '高血压 10 年（既往史）',  type: 'history', weight: 'supportive' },
-    ],
-    differential: [
-      { disease: '肺源性气短（COPD）', relationship: 'exclude',  note: '无吸烟史，但气短需肺功能排查' },
-      { disease: '贫血',               relationship: 'consider', note: '乏力气短需查血常规排除贫血' },
-    ],
-    tags: ['需进一步检查'],
-  },
-]
-
 // ── 辅助工具 ──────────────────────────────────────────
 
 const WEIGHT_CONFIG: Record<EvidenceWeight, { label: string; color: string }> = {
@@ -138,21 +69,65 @@ function confidenceColor(v: number) {
 
 // ── 主组件 ────────────────────────────────────────────
 
+function matchLabel(confidence: number): DiagnosisItem['match_label'] {
+  if (confidence >= 0.85) return '高度匹配'
+  if (confidence >= 0.65) return '中度匹配'
+  return '低度匹配'
+}
+
 export default function DiagnosisPage() {
   const { selectedDiagnosis, setSelectedDiagnosis, parsedEntities, showToast, openWritebackModal } = useAppStore()
 
-  const [expandedId, setExpandedId]   = useState<string | null>('d1')
+  const [diagnoses, setDiagnoses]     = useState<DiagnosisItem[]>([])
+  const [loading, setLoading]         = useState(false)
+  const [error, setError]             = useState<string | null>(null)
+  const [expandedId, setExpandedId]   = useState<string | null>(null)
   const [activeTab, setActiveTab]     = useState<Record<string, DetailTab>>({})
   const [sortKey, setSortKey]         = useState<SortKey>('confidence')
 
   // 来自解析的已确认实体，作为来源摘要
-  const confirmedEntities = parsedEntities.filter(e => e.confirmed)
+  const confirmedEntities = parsedEntities.filter(e => e.status === 'accepted')
+
+  const loadDiagnoses = (entities: typeof parsedEntities) => {
+    setLoading(true)
+    setError(null)
+    fetchDiagnoses(entities)
+      .then(results => {
+        const items: DiagnosisItem[] = results.map((r, i) => ({
+          id: `d${i + 1}`,
+          disease_name: r.disease_name,
+          icd_code: r.icd_code,
+          confidence: r.confidence,
+          priority: r.priority,
+          match_label: matchLabel(r.confidence),
+          reasoning: r.reasoning,
+          evidence: [],
+          differential: [],
+          tags: r.tags,
+        }))
+        setDiagnoses(items)
+        if (items.length > 0) setExpandedId(items[0].id)
+      })
+      .catch(err => {
+        console.error('fetchDiagnoses failed', err)
+        const msg = err instanceof Error ? err.message : '诊断推荐失败'
+        setError(msg)
+        showToast('诊断推荐失败，请检查后端连接后重试', 'error')
+      })
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    const acceptedEntities = parsedEntities.filter(e => e.status === 'accepted')
+    if (acceptedEntities.length === 0) return
+    loadDiagnoses(acceptedEntities)
+  }, [parsedEntities]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const sorted = useMemo(() => {
-    return [...MOCK_DIAGNOSES].sort((a, b) =>
+    return [...diagnoses].sort((a, b) =>
       sortKey === 'confidence' ? b.confidence - a.confidence : a.priority - b.priority
     )
-  }, [sortKey])
+  }, [diagnoses, sortKey])
 
   const getTab = (id: string): DetailTab => activeTab[id] ?? 'evidence'
   const setTab = (id: string, tab: DetailTab) => setActiveTab(prev => ({ ...prev, [id]: tab }))
@@ -161,6 +136,24 @@ export default function DiagnosisPage() {
     setSelectedDiagnosis(item.disease_name)
     showToast(`已采纳诊断：${item.disease_name}`, 'success')
     setExpandedId(item.id)
+  }
+
+  if (loading) return <div className="page dx-page"><p style={{ padding: 24, color: '#888' }}>正在推荐诊断…</p></div>
+
+  if (error) {
+    const acceptedEntities = parsedEntities.filter(e => e.status === 'accepted')
+    return (
+      <div className="page dx-page">
+        <div style={{ padding: '32px 24px', textAlign: 'center' }}>
+          <p style={{ color: '#c0392b', fontSize: 14, marginBottom: 8 }}>⚠ 诊断推荐失败</p>
+          <p style={{ color: '#888', fontSize: 12, marginBottom: 16 }}>{error}</p>
+          <button
+            style={{ padding: '7px 20px', background: '#2980b9', color: '#fff', border: 'none', borderRadius: 5, fontSize: 13, cursor: 'pointer' }}
+            onClick={() => loadDiagnoses(acceptedEntities)}
+          >重试</button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -172,7 +165,7 @@ export default function DiagnosisPage() {
           <span className="dx-page-icon">⚕</span>
           <div>
             <div className="dx-page-title">辅助诊断</div>
-            <div className="dx-page-sub">基于患者信息智能推荐 · {MOCK_DIAGNOSES.length} 条结果</div>
+            <div className="dx-page-sub">基于患者信息智能推荐 · {diagnoses.length} 条结果</div>
           </div>
         </div>
         <div className="dx-header-right">
